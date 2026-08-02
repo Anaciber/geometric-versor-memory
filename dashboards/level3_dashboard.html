@@ -1,0 +1,165 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Nivel 3 — Edición de conocimiento</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,600&family=JetBrains+Mono:wght@400;500;700&display=swap');
+:root{--bg:#0c0b10;--panel:#16141d;--line:#2a2733;--ink:#ece9f1;--dim:#9b94ab;
+  --ver:#5ce5a8;--rome:#7aa2ff;--ft:#ff7a8a;--good:#5ce5a8;--warn:#ffb454;--bad:#ff7a8a;}
+*{box-sizing:border-box}
+body{margin:0;background:radial-gradient(900px 500px at 85% -5%,#1e1a3322,transparent),var(--bg);
+  color:var(--ink);font-family:'Fraunces',serif;line-height:1.55}
+.wrap{max-width:1000px;margin:0 auto;padding:54px 26px 90px}
+.mono{font-family:'JetBrains Mono',monospace}
+.tag{font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:.2em;text-transform:uppercase;
+  color:var(--ver);border:1px solid #1d3a2c;background:#0c1a13;padding:5px 11px;border-radius:4px}
+h1{font-size:44px;font-weight:600;letter-spacing:-.02em;margin:20px 0 6px;line-height:1.05}
+.sub{color:var(--dim);font-size:18px;max-width:66ch}
+section{margin-top:48px}
+h2{font-family:'JetBrains Mono',monospace;font-size:12px;letter-spacing:.18em;text-transform:uppercase;
+  color:var(--dim);border-bottom:1px solid var(--line);padding-bottom:8px;margin:0 0 22px;font-weight:500}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:24px}
+.grid{display:grid;gap:14px}.g3{grid-template-columns:repeat(3,1fr)}
+@media(max-width:760px){.g3{grid-template-columns:1fr}}
+svg{width:100%;height:auto;display:block}
+.legend{display:flex;gap:16px;flex-wrap:wrap;margin-top:14px;font-family:'JetBrains Mono',monospace;font-size:12px}
+.legend span{display:inline-flex;align-items:center;gap:6px}.dot{width:11px;height:11px;border-radius:3px}
+table{width:100%;border-collapse:collapse;font-family:'JetBrains Mono',monospace;font-size:13px;margin-top:6px}
+th,td{padding:9px 12px;border-bottom:1px solid var(--line);text-align:right}
+th:first-child,td:first-child{text-align:left}
+th{color:var(--dim);font-size:11px;letter-spacing:.06em;text-transform:uppercase;font-weight:500}
+b.good{color:var(--good)}b.bad{color:var(--bad)}b.warn{color:var(--warn)}
+.verdict{border-left:3px solid var(--good);padding:4px 0 4px 18px;margin:12px 0}
+.verdict.bad{border-color:var(--bad)}.verdict.warn{border-color:var(--warn)}
+.note{color:var(--dim);font-size:14px;font-style:italic;margin-top:14px}
+.kpi{font-family:'JetBrains Mono',monospace;font-size:28px;font-weight:700}
+.klabel{color:var(--dim);font-size:14px;margin-top:8px}
+.foot{color:var(--dim);font-size:12px;margin-top:54px;border-top:1px solid var(--line);padding-top:18px}
+.big{font-size:21px;line-height:1.5}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <span class="tag">Nivel 3 · Edición de conocimiento · FT vs ROME vs memoria versor</span>
+  <h1>60 ediciones después,<br>el versor sigue intacto</h1>
+  <p class="sub">Protocolo estándar en miniatura: LM entrenado desde cero (100% en plantillas de
+  entrenamiento, 94% en plantilla retenida), 60 ediciones <b>secuenciales</b> de hechos, tres métricas
+  canónicas. Editores: fine-tuning ingenuo, rank-one estilo ROME (clave k*, optimización v*,
+  blanqueo por covarianza) y el módulo de memoria versor con el LM <b>congelado</b>.</p>
+
+  <section>
+    <h2>Titulares</h2>
+    <div class="grid g3">
+      <div class="card">
+        <div class="kpi good">1.00 vs 0.82</div>
+        <div class="klabel"><b>Eficacia a k=60.</b> Versor (carga 2) edita perfecto donde ROME ha caído
+        al 0.82. El crossover documentado en la literatura, reproducido: ROME degrada con las ediciones
+        acumuladas; el versor es plano porque las ediciones no interactúan.</div>
+      </div>
+      <div class="card">
+        <div class="kpi" style="color:var(--ver)">E2 lo predijo</div>
+        <div class="klabel"><b>Anatomía del error.</b> A k=60, el gate del versor: 0 fallos, 0 confusiones.
+        Su 12% de pérdida inicial era el crosstalk de carga 3 — la cifra exacta de la curva E2.
+        Bajar a carga 2 → eficacia 1.00. Consistencia entre experimentos.</div>
+      </div>
+      <div class="card">
+        <div class="kpi" style="color:var(--ver)">&lt;1s / 60</div>
+        <div class="klabel"><b>Coste de edición.</b> 60 ediciones versor en &lt;1s (un binding cada una);
+        ROME optimiza v* por edición; FT desciende gradientes — y se autodestruye
+        (localidad 0.04 a k=20).</div>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <h2>Edición secuencial — las tres métricas frente al nº de ediciones</h2>
+    <div class="card">
+      <svg id="seq" viewBox="0 0 720 340"></svg>
+      <div class="legend">
+        <span><span class="dot" style="background:var(--ver)"></span>versor (sólido=eficacia, fino=localidad, punteado=paráfrasis)</span>
+        <span><span class="dot" style="background:var(--rome)"></span>ROME</span>
+        <span><span class="dot" style="background:var(--ft)"></span>FT ingenuo (eficacia)</span>
+        <span>★ versor carga-2 @k=60</span>
+      </div>
+      <p class="note">ROME: eficacia 1.00→0.82 y localidad 1.00→0.92 al acumular ediciones (los deltas
+      rank-one interfieren en los pesos). Versor: plano en ~0.88/0.98 (cada edición vive en su slot,
+      el modelo no se toca); con carga 2, eficacia 1.00 (★). Paráfrasis: versor consistentemente
+      por encima (0.62-0.70 vs 0.43) — hereda la invarianza de representación del LM congelado.</p>
+    </div>
+  </section>
+
+  <section>
+    <h2>Borrado — revertir las 60 ediciones</h2>
+    <div class="card">
+      <table>
+        <thead><tr><th>Editor</th><th>Mecanismo</th><th>Localidad restaurada</th></tr></thead>
+        <tbody>
+          <tr><td>versor</td><td>resta del bind (modelo nunca tocado)</td><td><b class="good">1.000</b></td></tr>
+          <tr><td>ROME</td><td>resta de los deltas rank-one almacenados</td><td><b class="good">1.000</b></td></tr>
+          <tr><td>FT ingenuo</td><td>no existe (reentrenar)</td><td><b class="bad">0.033</b></td></tr>
+        </tbody>
+      </table>
+      <p class="note">Matiz honesto (eco del Nivel 0): el borrado exacto <b>no</b> es exclusivo del versor —
+      los deltas de ROME también son aditivos y restables si se almacenan. La diferencia operativa: el
+      versor no toca el modelo en ningún momento, así que la restauración es trivial por construcción,
+      mientras que el undo de ROME depende de conservar el historial de deltas y de que no haya deriva
+      numérica a gran escala.</p>
+    </div>
+  </section>
+
+  <section>
+    <h2>Veredicto del Nivel 3 — el más favorable de la serie</h2>
+    <div class="card">
+      <p class="big" style="margin-top:0">Es el primer nivel donde el modelo de la tesis <b class="good">gana
+      a un método de referencia en su propio terreno</b>: a 60 ediciones secuenciales, supera a ROME en las
+      tres métricas (eficacia 1.00 vs 0.82, paráfrasis 0.70 vs 0.43, localidad 0.98 vs 0.92), con coste de
+      edición O(1) y borrado trivial.</p>
+      <div class="verdict warn">Acotaciones que mantienen el resultado honesto: escala miniatura (LM sintético,
+      120 hechos); a pocas ediciones (k≤20) ROME iguala o supera; la paráfrasis del versor está limitada por
+      la invarianza de representación del LM base (techo ~0.70); y el gate se calibró con datos de
+      entrenamiento (margen within 0.95 vs between 0.87).</div>
+      <div class="verdict">El mecanismo del resultado es lo generalizable: ROME degrada porque sus ediciones
+      comparten los mismos pesos y se interfieren; el versor no degrada porque las ediciones viven en slots
+      independientes de una memoria externa con el modelo congelado. Esa asimetría estructural es la que
+      debería sobrevivir al escalar — y es la hipótesis concreta a validar sobre un LLM real
+      (CounterFact/zsRE) cuando haya acceso a pesos preentrenados.</div>
+    </div>
+  </section>
+
+  <div class="foot mono">
+    level3.py · level3_results.json · level3_stress.json · level3_load2.json ·
+    LM: 2 capas, d=32, JAX/Adam, 3.500 pasos; KB 120 hechos × 4 plantillas (3 train + 1 heldout) ·
+    ROME: C de activaciones FFN del corpus, v* 50 pasos Adam · versor: Cl(6,0), gate τ=0.912 calibrado
+    en train · 60 ediciones secuenciales, anatomía de error medida.
+  </div>
+</div>
+
+<script>
+(function(){
+ const ks=[10,20,30,40,50,60];
+ const ROME={eff:[1,.95,.933,.875,.84,.817],par:[.5,.4,.467,.35,.36,.433],loc:[1,1,1,.983,.95,.917]};
+ const VER={eff:[.9,.8,.867,.85,.88,.883],par:[.8,.6,.667,.575,.58,.617],loc:[1,1,1,.983,.983,.983]};
+ const FT={k:[1,5,10,20],eff:[1,.8,.3,.1]};
+ const W=720,H=340,P={l:52,r:18,t:16,b:46},x0=P.l,x1=W-P.r,y0=H-P.b,y1=P.t;
+ const sx=k=>x0+((k-0)/(60-0))*(x1-x0), sy=a=>y0-a*(y0-y1);
+ let s='';
+ [0,.25,.5,.75,1].forEach(a=>{s+=`<line x1="${x0}" y1="${sy(a)}" x2="${x1}" y2="${sy(a)}" stroke="#221f2b"/>`;
+  s+=`<text x="${x0-8}" y="${sy(a)+4}" fill="#9b94ab" font-size="11" text-anchor="end" font-family="JetBrains Mono">${(a*100)|0}%</text>`;});
+ [10,20,30,40,50,60].forEach(k=>s+=`<text x="${sx(k)}" y="${y0+20}" fill="#9b94ab" font-size="11" text-anchor="middle" font-family="JetBrains Mono">${k}</text>`);
+ s+=`<text x="${(x0+x1)/2}" y="${H-6}" fill="#9b94ab" font-size="12" text-anchor="middle" font-family="JetBrains Mono">nº de ediciones secuenciales acumuladas</text>`;
+ function line(xs,ys,color,wd,dash){
+  let d='';xs.forEach((k,i)=>d+=(i?'L':'M')+sx(k)+' '+sy(ys[i])+' ');
+  s+=`<path d="${d}" fill="none" stroke="${color}" stroke-width="${wd}" ${dash?'stroke-dasharray="5 4"':''}/>`;
+  xs.forEach((k,i)=>s+=`<circle cx="${sx(k)}" cy="${sy(ys[i])}" r="3" fill="${color}"/>`);
+ }
+ line(ks,ROME.eff,'#7aa2ff',2.8);line(ks,ROME.loc,'#7aa2ff',1.4);line(ks,ROME.par,'#7aa2ff',1.4,true);
+ line(ks,VER.eff,'#5ce5a8',2.8);line(ks,VER.loc,'#5ce5a8',1.4);line(ks,VER.par,'#5ce5a8',1.4,true);
+ line(FT.k,FT.eff,'#ff7a8a',2,false);
+ s+=`<text x="${sx(60)}" y="${sy(1.0)-8}" fill="#5ce5a8" font-size="17" text-anchor="middle">★</text>`;
+ document.getElementById('seq').innerHTML=s;
+})();
+</script>
+</body>
+</html>
