@@ -1,0 +1,8 @@
+# Core (E0–E4: memory, sparse, generalization, geometric attention)
+numpy>=1.24
+scipy>=1.10
+matplotlib>=3.7
+
+# Trained-transformer experiments (E6–E7)
+jax>=0.4.20
+jaxlib>=0.4.20
