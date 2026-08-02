@@ -1,0 +1,663 @@
+\documentclass[10pt,twocolumn]{article}
+
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage[margin=1.9cm]{geometry}
+\usepackage{amsmath,amssymb,amsthm}
+\usepackage{booktabs}
+\usepackage{graphicx}
+\usepackage{xcolor}
+\usepackage[expansion=false]{microtype}
+\usepackage{titlesec}
+\usepackage{caption}
+\usepackage{hyperref}
+\usepackage{enumitem}
+\usepackage{abstract}
+
+\captionsetup{font=small,labelfont=bf}
+\hypersetup{colorlinks=true,linkcolor=blue!55!black,citecolor=blue!55!black,urlcolor=blue!55!black}
+
+\titleformat{\section}{\normalfont\large\bfseries}{\thesection}{0.6em}{}
+\titleformat{\subsection}{\normalfont\normalsize\bfseries}{\thesubsection}{0.6em}{}
+\titlespacing*{\section}{0pt}{1.4ex plus 1ex minus .2ex}{0.9ex plus .2ex}
+
+\newtheorem{proposition}{Proposition}
+\newcommand{\gp}{\,{*}\,}            % geometric product
+\newcommand{\real}{\mathbb{R}}
+\newcommand{\Cl}{\mathrm{Cl}}
+
+\title{\vspace{-1.2em}\bfseries Geometric Versor Memory and Geometric Attention:\\
+A Clifford-Algebra Substrate for One-Shot Binding, Editing, and Order Encoding}
+
+\author{%
+Ignacio Mar\'ia Ozc\'ariz Arraiza\\[0.3em]
+\small Doctor en Electr\'onica, Inform\'atica y Comunicaciones,\\[-0.3em]
+\small Escuela de Ingenieros Industriales, Universidad de Extremadura\\[-0.2em]
+\small Ingeniero Aeroespacial, Universidad Polit\'ecnica de Madrid\\[0.35em]
+\small ORCID:~\href{https://orcid.org/0000-0002-9511-016X}{0000-0002-9511-016X}
+\quad\href{mailto:anaciber@gmail.com}{anaciber@gmail.com}
+}
+\date{}
+
+\begin{document}
+\maketitle
+
+\begin{abstract}
+\noindent
+Modern attention binds queries and keys by a symmetric dot product: it is blind
+to order, and the knowledge it stores is expensive to edit. We study an
+associative-memory and attention model that replaces this inner product with the
+geometric (Clifford) product of unit \emph{versors}. Binding is a single
+geometric product, recall is multiplication by the versor inverse, and---because
+that inverse is exact---a stored fact is deleted exactly, with no retraining. We
+measure the model on small algebras $\Cl(n,0)$, $n\le 8$, under a reproducible
+synthetic protocol, and report both what it delivers and what it does not. A
+single field has low, sub-linearly scaling capacity dominated by superposition
+cross-talk (E1), which a sparse addressable arrangement restores to linear (E2);
+the pure model generalizes by robustness and exact analogy but needs a softmax
+readout to interpolate (E3--E4); and against classical one-shot and trained
+baselines it loses in raw capacity and noise robustness, its measured edge being
+storage density and composable algebraic structure (E0). Two trained-model
+results follow. Versor position binding is \emph{provably} orthogonal, generalizes
+rotary position embeddings (RoPE), and matches them once the frequency spectrum
+is designed (E6). And, as our flagship result, under \emph{sequential} knowledge
+editing a frozen-model versor memory surpasses a faithful rank-one (ROME)
+baseline on all three canonical metrics at 60 accumulated edits---efficacy
+$1.00$ vs.\ $0.82$, paraphrase $0.70$ vs.\ $0.43$, locality $0.98$ vs.\
+$0.92$---with $O(1)$ edit cost and exact deletion (E7). We conclude that the
+model is best understood not as a ``one-shot large language model'' but as an
+edit-friendly, order-aware \emph{memory--binding substrate} for attention, in
+which the attention inner product is the geometric product. All results are
+small-model and synthetic; scaling to pretrained language models and standard
+benchmarks is left to future work.
+\end{abstract}
+
+\section{Introduction}
+Modern sequence models are dominated by the transformer, whose core operation is
+scaled dot-product attention, $\mathrm{softmax}(QK^\top/\sqrt{d})\,V$~\cite{vaswani2017}. Two
+recurring weaknesses of this paradigm are (a) the cost and instability of
+\emph{editing} stored knowledge---adding or removing a fact typically requires
+re-training or fine-tuning---and (b) the reliance on bolted-on positional
+encodings because the dot product is symmetric and therefore blind to order.
+Vector Symbolic Architectures (VSA) and Holographic Reduced Representations
+(HRR)~\cite{plate1995,kanerva2009,smolensky1990,kleyko2022} offer an alternative:
+represent items as high-dimensional vectors and bind them
+by a multiplication-like operation, enabling one-shot storage and algebraic
+composition. Geometric (Clifford) algebra~\cite{hestenes1984,dorst2007} refines
+this idea by giving the binding
+operation a geometric meaning---rotations and reflections---and by separating an
+inner (symmetric) and outer (antisymmetric) part.
+
+This paper formalizes and \emph{measures} a geometric-algebra memory in which
+the state is a multivector, items are unit \emph{versors}, binding is the
+geometric product, and recall is multiplication by the versor inverse. We then
+ask the empirical questions that decide whether such a model is viable:
+how much can a field store; does sparsity restore scaling; does it generalize;
+and what does a geometric attention layer add over a standard one. We answer each
+with reproducible experiments on $\Cl(n,0)$ for $n\le 8$. Our contributions are
+deliberately scoped: they hold in a small-algebra, synthetic-data regime and are
+intended as a proof-of-concept and a precise statement of which properties are
+genuine and which are limited.
+
+\paragraph{Contributions.} Concretely, we contribute:
+(1)~a versor associative memory with exact, invertible binding, and an analysis
+(E1) showing that the \emph{conditioning} of the unbinding map---not grade
+richness---governs single-field capacity;
+(2)~a sparse addressable construction (E2) that removes the single-field ceiling
+and restores linear capacity scaling;
+(3)~a geometric-attention layer (E3--E4) that recovers interpolation through
+softmax while \emph{uniquely} retaining an order/orientation dimension the dot
+product discards;
+(4)~an honest baseline study (E0) locating the model's advantage in storage
+density and composable algebraic structure, not raw capacity or robustness;
+(5)~a proof, with a trained-transformer demonstration (E6), that versor position
+binding generalizes RoPE, the decisive variable being the frequency spectrum;
+and
+(6)~a flagship sequential-editing result (E7) in which a frozen-model versor
+memory surpasses a faithful rank-one ROME baseline on all three canonical
+metrics at 60 edits.
+
+\section{Background and Model}
+
+\subsection{Geometric algebra $\Cl(n,0)$}
+We work in the Clifford algebra generated by $n$ orthonormal vectors
+$e_1,\dots,e_n$ with $e_ie_j+e_je_i = 2\delta_{ij}$ and positive signature. The
+algebra has $2^n$ basis blades graded by the number of generators they contain
+(scalar, vectors, bivectors, \dots, pseudoscalar). A multivector $a$ is a real
+linear combination of blades. The \emph{geometric product} decomposes into a
+symmetric inner part and an antisymmetric outer part,
+\begin{equation}
+a \gp b \;=\; a\cdot b \;+\; a\wedge b ,\qquad
+a\cdot b = b\cdot a,\quad a\wedge b = -\,b\wedge a .
+\label{eq:gp}
+\end{equation}
+For the four-vector case $\Cl(4,0)$ used in the original neuro-quantum
+formulation, a single geometric product expands to $16\times16=256$ scalar
+multiplications.
+
+\subsection{Versors and exact inversion}
+A \emph{versor} is a product of invertible vectors, $V=v_1\gp v_2\gp\cdots\gp v_k$.
+Versors form a group; the reverse $\widetilde V$ (blade order reversed, inducing
+the sign $(-1)^{g(g-1)/2}$ per grade $g$) yields the inverse
+\begin{equation}
+V^{-1} \;=\; \frac{\widetilde V}{V\gp\widetilde V},\qquad V\gp\widetilde V \in \real .
+\label{eq:inv}
+\end{equation}
+We verified numerically that genuine versors invert to machine precision
+($\max$ error $\sim 10^{-16}$ for $n\le 8$), whereas an \emph{arbitrary}
+multivector does not, because $X\gp\widetilde X$ is then not scalar. This is the
+first design constraint: keys and operators must be versors for recall to be
+exact.
+
+\subsection{Versor associative memory}
+Given key/value versor pairs $(k_i,v_i)$, we store by binding and superposing,
+and recall by unbinding with the key inverse:
+\begin{align}
+M &= \sum_{i=1}^{K} k_i \gp v_i, \label{eq:store}\\
+\widehat v_q &= k_q^{-1}\gp M
+   = v_q + \underbrace{\sum_{i\neq q} k_q^{-1}\gp k_i \gp v_i}_{\text{cross-talk}} .
+\label{eq:recall}
+\end{align}
+A non-linear \emph{clean-up}---nearest stored value by cosine---resolves the
+noisy readout to a discrete item. \emph{Editing} is exact and local: a stored
+pair is removed by subtracting $k_i\gp v_i$, and a versor operator is undone by
+multiplying with its inverse \eqref{eq:inv}.
+
+\section{Experiments}
+All experiments use $\Cl(n,0)$, synthetic random versors, and the protocol of
+Eqs.~\eqref{eq:store}--\eqref{eq:recall}. Code and per-run JSON are released with
+the paper. Reported numbers are means over repeated trials (4--200 depending on
+cost); ``capacity'' is the largest number of associations recalled at a stated
+clean-up accuracy threshold.
+
+\subsection{E1: Single-field capacity and the role of encoding}
+We measure capacity at $\ge 95\%$ clean-up accuracy for four code families:
+grade-2 versors (\textsc{v2}, the original choice), mixed-grade versors
+(\textsc{v\_n}, product of $n$ vectors), even rotors (\textsc{rot}), and
+random full-spectrum unit multivectors with an exact matrix inverse
+(\textsc{full}). Table~\ref{tab:enc} and Fig.~\ref{fig:cap} show that mixed-grade
+versors roughly double the capacity of grade-2 versors, while \textsc{full}
+codes \emph{under}-perform despite carrying a complete grade spectrum.
+
+\begin{table}[t]
+\centering
+\caption{Single-field capacity at $\ge 95\%$ accuracy, by code family.
+Mixed-grade versors (\textsc{v\_n}) dominate; full-spectrum codes are worst.}
+\label{tab:enc}
+\small
+\begin{tabular}{lrrrrr}
+\toprule
+$n$ & dim & \textsc{v2} & \textsc{v\_n} & \textsc{rot} & \textsc{full}\\
+\midrule
+4 & 16  & 1 & 2 & 3 & 2\\
+5 & 32  & 1 & 2 & 3 & 3\\
+6 & 64  & 3 & 5 & 5 & 1\\
+7 & 128 & 5 & 7 & 5 & 2\\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=\columnwidth]{fig_capacity.pdf}
+\caption{Single-field capacity per unit dimension falls with algebra dimension
+for every code family (E1): the single-field capacity is sub-linear. Mixed-grade
+versors and rotors lead; full-spectrum codes, worst-conditioned at unbinding,
+collapse at high dimension.}
+\label{fig:cap}
+\end{figure}
+
+The mechanism is the \emph{conditioning of the unbinding map}. Writing the
+geometric product $k^{-1}\gp(\cdot)$ as a linear operator on $\real^{2^n}$, its
+condition number determines how recall amplifies cross-talk noise. We measured
+(over 50 keys, $n=7$) a median condition number of exactly $1.000$ for versor
+unbinding versus $\approx 19.5$ (90th pct.\ $35.6$) for full-multivector
+unbinding. A versor unbinding is norm-preserving and does not amplify noise;
+a full multivector's does. Thus the versor constraint, needed for exact
+inversion, is simultaneously what keeps recall well-conditioned. A structural
+observation explains why even mixed-grade versors fall short of an ideal code:
+a versor occupies blades of a single parity (all even or all odd), so it is
+never full-spectrum.
+
+\paragraph{Finding.} Part of the capacity limit is the encoding (curable: prefer
+mixed-grade versors), and part is intrinsic: even the best versor code scales
+sub-linearly, with capacity/dimension falling from $\sim0.19$ (dim 16) to
+$\sim0.05$ (dim 256).
+
+\subsection{E2: Sparse addressable memory restores linear scaling}
+Instead of one saturated field, we use $M$ small fields (``slots''), each holding
+a few associations below its cross-talk ceiling, plus an addressing function that
+routes a key to a slot. We compare a deterministic key-hash (O(1), content-blind)
+and a content-addressable nearest-anchor scheme (O(M)). Using $\Cl(6,0)$
+(dim 64) mixed-grade versors as the building block, total capacity at
+$\ge 90\%$ accuracy scales \emph{linearly} with $M$
+(Table~\ref{tab:sparse}, Fig.~\ref{fig:sparse}); we verified linearity to
+$M=256$ (768 associations at $94\%$). The single-field ceiling ($\sim 4$) is
+removed; capacity becomes a design parameter.
+
+\begin{table}[t]
+\centering
+\caption{Sparse memory: total capacity at $\ge 90\%$ vs.\ number of slots $M$
+(building block $\Cl(6,0)$, dim 64).}
+\label{tab:sparse}
+\small
+\begin{tabular}{rrr}
+\toprule
+$M$ slots & hash (O(1)) & anchor (O(M))\\
+\midrule
+1  & 4   & 6\\
+2  & 8   & 8\\
+4  & 16  & 16\\
+8  & 32  & 24\\
+16 & 48  & 48\\
+32 & 128 & 64\\
+64 & 192 & 128\\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=\columnwidth]{fig_sparse.pdf}
+\caption{Total capacity scales linearly in the number of slots $M$ (E2),
+removing the single-field ceiling. Hash addressing is $O(1)$ but load-imbalanced;
+content-addressable anchor addressing is smoother at $O(M)$ cost per access.}
+\label{fig:sparse}
+\end{figure}
+
+\paragraph{Honest costs.} Hash addressing follows balls-in-bins: at mean load 3,
+the most-loaded slot held up to 10 items, the source of the residual $\sim5\%$
+error; consistent hashing or rebalancing mitigates this at the cost of state.
+Anchor addressing is content-addressable but costs O(M) per access
+($\approx 12\,\mu$s at $M{=}128$ vs.\ $0.6\,\mu$s for hash).
+
+\subsection{E3: Generalization---noise, analogy, interpolation}
+We probe three increasingly demanding forms of generalization on $\Cl(6,0)$.
+
+\emph{T1 (noise robustness).} Querying with a corrupted key
+$k_i+\eta$ (renormalized), recall accuracy degrades gracefully: $0.98$ at
+$\eta{=}0$, $0.90$ at $\eta{=}0.2$, $0.58$ at $\eta{=}0.5$. A hash table is exact
+at $\eta{=}0$ and $0$ otherwise; the associative memory tolerates corruption.
+This claim must, however, be read against the right baseline: as E0 shows
+(Sec.~\ref{sec:e0}), at \emph{equal load} a one-shot Hebbian associator and an
+explicit-storage Hopfield memory are \emph{more} noise-robust than the versor
+field (at $K{=}6$, $\eta{=}0.2$: $1.00$ and $1.00$ vs.\ $0.67$). Graceful
+degradation is an advantage over exact lookup, not over classical associative
+memories.
+
+\emph{T3 (structured analogy).} Encoding concepts as superpositions of role
+versors ($\textit{king}=\textit{royal}+\textit{male}$, etc.), the vector analogy
+$\textit{king}-\textit{man}+\textit{woman}$ retrieves \textit{queen} with
+accuracy $1.00$ across $n\in\{4,6,8\}$. This is exact symbolic generalization.
+
+\emph{T2 (interpolation).} Storing a smooth scalar field $f(t)$ keyed by versors
+along a path and querying at unseen midpoints, the linear-readout memory
+\emph{fails}: mean absolute error $0.795$, exceeding the signal scale
+$0.707$ (linear interpolation reference: $0.100$). Diagnosis shows the
+key-similarity kernel along the path \emph{is} smooth and localized; the failure
+is the linear readout, which averages over an over-broad tail. Replacing the
+raw-cosine average with a softmax-weighted average over the same similarities
+reduces error monotonically with temperature $T$ (from $0.53$ at the linear
+baseline to $0.078$ at $T{=}0.02$), i.e.\ below the signal scale: genuine
+interpolation.
+
+\paragraph{Finding.} The model generalizes by robustness and exact analogy but
+not by smooth interpolation, and the missing ingredient is precisely the softmax
+non-linearity, not the geometric similarity metric.
+
+\subsection{E4: Geometric attention}
+Motivated by E3, we build a single attention layer in which the score is derived
+from the geometric product rather than the dot product, then apply softmax and a
+weighted value sum. We test three properties.
+
+\emph{(A) Interpolation recovered.} With softmax readout, both dot-product and
+geometric-score attention interpolate the E3-T2 task (error $\approx 0.11 \ll
+0.71$). The non-linearity, not the score type, restores interpolation.
+
+\emph{(B) Analogy preserved.} Retrieving the $\textit{king}-\textit{man}+
+\textit{woman}$ analogy through attention preserves accuracy
+($0.96$ at $n{=}4$, $1.00$ at $n\in\{6,8\}$).
+
+\emph{(C) Order/orientation encoded.} Because
+$a\cdot b=b\cdot a$, dot-product scoring cannot distinguish the ordered pair
+$(a,b)$ from $(b,a)$: over 2000 pairs the discrimination margin
+$|\,\mathrm{score}(a,b)-\mathrm{score}(b,a)\,|$ is exactly $0.00$. The geometric
+product retains the antisymmetric wedge $a\wedge b=-\,b\wedge a$, giving a margin
+of $1.69$. This is an information-theoretic distinction, not a statistical one.
+
+\paragraph{Caveat.} On a realistic next-token sequence-retrieval task with
+distinct value vectors, \emph{standard} dot-product attention outperformed the
+single-field geometric binding ($1.00$ vs.\ $0.54$): the practical bottleneck is
+field capacity (E1), which classical key--value attention sidesteps. The
+defensible claim is therefore narrow and precise: the geometric product
+\emph{retains} an order/orientation dimension that the dot product discards, which
+helps exactly when a task needs relational or oriented structure (graphs,
+geometry, syntax, transformations), not in pure key--value lookup.
+
+\subsection{E0: Trained and explicit-storage baselines}
+\label{sec:e0}
+As a control across all preceding tasks, we run the identical protocol
+(store $K$ key--value pairs at $d{=}64$; nearest-value clean-up) on three
+classical systems with \emph{stated budgets}: a one-shot Hebbian linear
+associator $W=\sum_i v_i k_i^\top$ ($d^2$ floats); a modern Hopfield memory with
+explicit pattern storage and softmax retrieval~\cite{ramsauer2020,hopfield1982}
+($2Kd$ floats, the memory mechanism of attention); and a two-layer MLP trained by
+Adam under a fixed 3{,}000-step budget ($8{,}320$ parameters; the
+``weights-as-memory'' regime of language models). Table~\ref{tab:e0} reports
+capacity, storage, density, and write/delete properties; noise robustness is
+measured at the \emph{same} load $K{=}6$ for every system.
+
+\begin{table}[t]
+\centering
+\caption{E0: identical task, stated budgets ($d{=}64$, threshold $90\%$).
+``$\ge$'' marks the scan ceiling; Hopfield was verified interference-free to
+$K{=}2048$. Noise column: accuracy at fixed load $K{=}6$, $\eta{=}0.2$.}
+\label{tab:e0}
+\small
+\setlength{\tabcolsep}{3.4pt}
+\begin{tabular}{lrrrllr}
+\toprule
+system & cap@90 & storage & dens. & write & delete & noise\\
+\midrule
+versor      & 6          & 64      & \textbf{0.094} & 1-shot & exact   & 0.67\\
+Hebbian     & 180        & 4{,}096 & 0.044          & 1-shot & exact   & \textbf{1.00}\\
+Hopfield    & $\ge$2048  & $2Kd$   & 0.008          & append & exact   & \textbf{1.00}\\
+MLP         & $\ge$256   & 8{,}320 & 0.031          & 3k steps & retrain & 0.94\\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Three honest conclusions follow. First, in \emph{raw capacity} the classical
+baselines dominate: explicit storage has no interference ceiling at all, and even
+the Hebbian associator stores $30\times$ more than the versor field at this
+dimension. Second, in \emph{equal-load noise robustness} the versor field is
+mid-pack, not best (cf.\ the T1 qualification above); the gradient-trained MLP,
+by contrast, is robust at low load but collapses with load ($0.11$ at $K{=}128$,
+$\eta{=}0.2$). Third, one-shot writing and exact deletion are \emph{not} unique
+to the versor memory---the Hebbian and explicit-Hopfield systems share both; the
+MLP has neither (writing costs epochs, deletion costs retraining). What survives
+as distinctive, by measurement, is (a) \emph{density}: the versor field is the
+most compact fixed-size superposed store, $2$--$12\times$ the alternatives in
+associations per float, relevant wherever state must be small and fixed (embedded
+or FPGA settings); and (b) \emph{algebraic structure}: it is the only system of
+the four whose binding is multiplicative, invertible, and composable---the basis
+of the exact analogy (E3), operator composition, and order encoding (E4) that
+neither the outer product nor dot-product attention provides. E0 thus sharpens
+the value proposition: not raw capacity or robustness, but a compact fixed-size
+state with composable algebraic structure.
+
+\subsection{E6: Versor position binding in trained transformers}
+\label{sec:e6}
+We test the order-encoding claim inside a \emph{trained} model: a 2-layer,
+1-head transformer ($d{=}32{=}\dim\Cl(5,0)$, JAX/Adam, 2 seeds per condition),
+where only the position mechanism varies: no positions; additive sinusoidal PE;
+rotary position embeddings (RoPE)~\cite{su2021roformer}; binding by powers of a
+\emph{random} unit versor applied to $q,k$; and a \emph{spectrum-matched} versor
+(designed frequencies in random, non-axis-aligned planes). Two theoretical facts,
+verified at $10^{-16}$, motivate the comparison: left-multiplication by a unit
+versor is \emph{orthogonal}, hence
+$\langle P_t q, P_s k\rangle=\langle q, P_{s-t}k\rangle$---the relative-position
+property of RoPE---and RoPE is exactly the special case of commuting,
+axis-aligned 2-D rotors. Versor binding therefore \emph{generalizes} RoPE.
+
+Empirically: on position retrieval (output the token at a queried position,
+$L{=}10$), the no-position control sits at chance ($0.10\approx 1/L$,
+confirming the task is impossible without positions) while sinusoidal, RoPE,
+and versor binding all reach $1.00$. On pairwise order (does $a$ precede $b$?)
+with length extrapolation (train $L\in[6,12]$, test $L\in\{16,20,24\}$), the
+\emph{random} versor fails ($0.70$ in-distribution, near-chance extrapolated).
+The diagnosis is spectral, not algebraic: the random versor's slowest rotation
+channel has period ${\sim}6$ positions---it wraps \emph{inside} the training
+context---whereas RoPE's slowest channel has period ${\sim}3.5{\times}10^{4}$.
+A versor with RoPE's frequency spectrum in random non-commuting planes recovers
+full parity: in-distribution $0.947$ vs.\ $0.954$, extrapolation
+$0.78/0.69/0.60$ vs.\ $0.81/0.69/0.58$ (statistically indistinguishable).
+
+\paragraph{Finding.} Versor binding is a working position mechanism in trained
+transformers and is the mathematical generalization of RoPE; the decisive design
+variable is the \emph{frequency spectrum}, not the algebraic form. The result is
+parity with RoPE, not superiority; and a random versor is a provably poor
+positional encoder.
+
+\subsection{E7: Sequential knowledge editing (flagship result)}
+\label{sec:e7}
+Inverse-based editing is the capability where the substrate has no classical
+counterpart among weight-editing methods, so we evaluate it head-to-head in a
+miniature of the standard protocol~\cite{meng2022rome}. A base LM (2 layers,
+$d{=}32$) is trained from scratch to memorize 120 facts
+$(s,r)\!\to\!o$, each expressed through 4 paraphrase templates (3 in training,
+1 held out; base accuracy $1.00$ train / $0.94$ held-out). We then apply up to
+60 \emph{sequential} edits and track the three canonical metrics: efficacy
+(edited facts answer the new object), paraphrase (same, on the held-out
+template), and locality (unedited facts survive). Editors: naive fine-tuning;
+a faithful rank-one ROME implementation (key $k^*$ from the FFN hidden state,
+value $v^*$ optimized for the new object, covariance-whitened update
+$W_2 \mathrel{+}= (v^*-W_2k^*)(C^{-1}k^*)^\top/(k^{*\top}C^{-1}k^*)$)
+\cite{meng2022rome}; and the \emph{versor module}: base model frozen, each edit
+written one-shot as a versor binding into the sparse fields of E2
+(load $\le$ 2--3 per slot), retrieval gated by cosine similarity of the frozen
+model's representation (threshold calibrated on training data: within-fact
+$0.95$ vs.\ between-fact $0.87$).
+
+\begin{figure*}[t]
+\centering
+\includegraphics[width=0.92\textwidth]{fig_editing.pdf}
+\caption{Sequential knowledge editing (E7), our flagship result. As edits
+accumulate, the rank-one ROME baseline degrades on efficacy and locality because
+its deltas share one weight matrix and interfere; the frozen-model versor memory
+stays flat because each edit lives in its own slot and the model is never
+touched. At 60 edits the versor module (load 2, $\star$) dominates ROME on all
+three canonical metrics, with $O(1)$ edit cost and exact deletion.}
+\label{fig:e7}
+\end{figure*}
+
+\begin{table}[t]
+\centering
+\caption{E7: sequential editing, metrics vs.\ number of accumulated edits $k$
+(efficacy / paraphrase / locality). Naive FT collapses (locality $0.04$ at
+$k{=}20$, omitted). Bottom row: versor with slot load 2.}
+\label{tab:e7}
+\small
+\setlength{\tabcolsep}{4.2pt}
+\begin{tabular}{lccc}
+\toprule
+$k$ & ROME & versor (load 3) \\
+\midrule
+10 & 1.00 / 0.50 / 1.00 & 0.90 / 0.80 / 1.00\\
+20 & 0.95 / 0.40 / 1.00 & 0.80 / 0.60 / 1.00\\
+40 & 0.88 / 0.35 / 0.98 & 0.85 / 0.58 / 0.98\\
+60 & 0.82 / 0.43 / 0.92 & 0.88 / 0.62 / 0.98\\
+\midrule
+60 & --- & \textbf{1.00 / 0.70 / 0.98} (load 2)\\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Table~\ref{tab:e7} and Fig.~\ref{fig:e7} show the crossover. At few edits
+($k\le 20$) ROME matches or beats the versor module on efficacy. As edits
+accumulate, ROME degrades monotonically (efficacy $1.00\!\to\!0.82$, locality
+$1.00\!\to\!0.92$)---its rank-one deltas share the same weight matrix and
+interfere, the documented failure mode of sequential weight editing---while the
+versor module stays flat, because each edit lives in its own slot and the model
+is never touched. Error anatomy at $k{=}60$ closes the loop with E2: the versor
+gate makes \emph{zero} threshold misses and \emph{zero} wrong-entry matches; the
+residual efficacy loss ($0.88$) is exactly the slot cross-talk that E2's capacity
+curve predicts at load 3. Reducing the load to 2 yields \textbf{efficacy $1.00$,
+paraphrase $0.70$, locality $0.98$ at 60 edits}, against ROME's $0.82/0.43/0.92$.
+Edit cost is $O(1)$: all 60 versor edits complete in under one second, versus a
+per-edit $v^*$ optimization for ROME and gradient descent for FT. Deleting all
+60 edits restores the base model exactly ($1.000$); honestly, ROME's stored
+deltas are also subtractable ($1.000$ here), but the versor module never
+modifies the model in the first place, so restoration is trivial by
+construction, while FT has no mechanism ($0.033$).
+
+\paragraph{Finding.} The structural asymmetry---weight edits interfere,
+slot-isolated algebraic edits do not---produces the first measured
+\emph{advantage over a state-of-the-art reference method}: at 60 sequential
+edits the versor module dominates ROME on all three canonical metrics. The
+caveats are stated in Sec.~\ref{sec:limits}; the asymmetry itself is what we
+expect to persist at scale, and validating it on a pretrained LLM with
+CounterFact/zsRE is the concrete next step.
+
+\section{Discussion}
+The seven experiments support a single reframing, with E0 fixing its honest
+boundary and E6--E7 supplying trained-model evidence. The geometric-versor model is
+\emph{not} a ``one-shot large language model'': its single-field capacity is
+small and it does not, by itself, interpolate. It is, however, a faithful
+\emph{memory--binding substrate} for attention. Concretely, consider a
+transformer-style layer
+$\mathrm{softmax}\!\big(s(Q,K)/T\big)\,V$ in which the score $s$ is read from the
+geometric product $Q\gp K$ rather than from $Q K^\top$. Relative to the standard
+layer this substrate adds three capabilities demonstrated above:
+\begin{enumerate}[leftmargin=1.3em,itemsep=2pt,topsep=2pt]
+\item \textbf{Exact structural binding} via the geometric product, with
+unbinding by the versor inverse---preserving the analogy behavior of E3-T3/E4-B.
+\item \textbf{Inverse-based editing}: a stored fact or an applied operator is
+removed exactly by multiplying with its inverse \eqref{eq:inv}, without
+re-training---realized in E7 as a frozen-model editor that surpasses a rank-one
+ROME baseline under sequential editing.
+\item \textbf{Intrinsic order/orientation encoding} from the antisymmetric part
+of the product (E4-C), which the symmetric dot product cannot represent---realized
+in E6 as a position-binding mechanism that provably generalizes RoPE.
+\end{enumerate}
+The non-linearity that the pure algebraic model lacked---softmax with a
+controllable temperature---is the same one the transformer already uses, and it
+is cheap to add (E3/E4-A). The well-conditioned versor unbinding (E1) and the
+sparse addressable arrangement (E2) make the substrate numerically stable and
+scalable in capacity.
+
+\section{Limitations}
+\label{sec:limits}
+We state these plainly, as they bound every claim above.
+\textbf{Scale.} Memory results are for $\Cl(n,0)$ with $n\le 8$ (dimension
+$\le256$); the $2^n$ blade count makes the dense geometric product expensive, and
+we have not measured behavior at the dimensions where VSA/HRR are normally
+deployed ($10^3$--$10^4$). The trained models of E6--E7 are deliberately small
+(2 layers, $d{=}32$).
+\textbf{Data.} Keys, values, the interpolation target, and the E7 knowledge base
+(120 synthetic facts, 4 templates) are synthetic; no natural-language or
+perceptual data is used.
+\textbf{Baselines.} E0 adds one-shot Hebbian, explicit-storage modern-Hopfield,
+and small gradient-trained MLP baselines---and the versor memory loses to them
+in raw capacity and equal-load robustness. E6--E7 add trained transformers,
+RoPE, and a faithful rank-one ROME implementation, but \emph{not} pretrained
+LLMs or the standard CounterFact/zsRE benchmarks; the E7 advantage is
+demonstrated in a miniature of that protocol.
+\textbf{Editing scope.} The E7 gate is calibrated on training-data
+representations (within-fact $0.95$ vs.\ between-fact $0.87$); paraphrase
+generalization is bounded by the frozen base model's representation invariance
+(ceiling ${\sim}0.70$). At few edits ($k\le20$) ROME matches or exceeds the
+versor module; the advantage emerges under accumulation. Exact deletion is also
+available to ROME if deltas are stored.
+\textbf{Spectrum design.} E6 shows a \emph{random} versor is a poor positional
+encoder (its spectrum wraps within ${\sim}6$ positions); position-binding
+claims hold only for designed spectra, where the result is parity with RoPE,
+not superiority.
+\textbf{Capacity.} Even with the best encoding, single-field capacity scales
+sub-linearly; the linear scaling of E2 is in the number of fields, with the
+addressing trade-offs noted.
+\textbf{Order claim.} E4-C establishes that order information is \emph{available}
+in the geometric score, not that it improves end-task accuracy in general; E4's
+caveat shows a case where it does not.
+
+\section{Related work and conclusion}
+The model sits at the intersection of VSA/HRR~\cite{plate1995,kanerva2009,kleyko2022},
+modern associative memories, and
+geometric-algebra neural networks~\cite{brandstetter2022,ruhe2023,brehmer2023}. A key
+nearby result is the modern Hopfield network~\cite{ramsauer2020,hopfield1982}, whose
+continuous update rule was shown to be equivalent to transformer
+attention~\cite{vaswani2017} and which stores exponentially many patterns with
+one-step retrieval; our work differs in using the geometric product---not the dot
+product---as the similarity kernel, and in foregrounding inverse-based editing and
+order encoding. The Geometric Algebra Transformer~\cite{brehmer2023} and Clifford
+neural layers~\cite{brandstetter2022,ruhe2023} likewise embed features in a Clifford
+algebra and process them with the geometric/sandwich product, but target $E(n)$
+equivariance for geometric data rather than associative memory and binding.
+Rotary position embeddings~\cite{su2021roformer} are, as E6 makes precise, the
+commuting axis-aligned special case of versor position binding; and the versor
+editor of E7 belongs to the memory-based editing family (frozen model plus
+external store), contrasted there with rank-one weight editing~\cite{meng2022rome}.
+Our specific stance is that the attention
+inner product can be the geometric product, turning attention into an
+edit-friendly, order-aware binding mechanism while retaining softmax for
+generalization. Within the small-model, synthetic regime studied here we have
+shown, with reproducible measurements, that (i) encoding and conditioning govern
+single-field capacity; (ii) sparsity restores linear capacity scaling;
+(iii) the pure model generalizes by robustness and exact analogy but needs a
+softmax readout to interpolate; and (iv) geometric attention recovers
+interpolation, preserves analogy, and uniquely encodes order; (v) against
+classical one-shot and trained baselines, the model's measured edge is storage
+density and composable algebraic structure, not raw capacity or robustness;
+(vi) versor position binding provably generalizes RoPE and matches it in trained
+transformers once the frequency spectrum is designed; and (vii) under sequential
+knowledge editing, the frozen-model versor memory surpasses a rank-one ROME
+baseline on all three canonical metrics at 60 edits. Establishing
+whether these advantages persist on pretrained language models, real data, and
+the standard editing benchmarks is the natural next step.
+
+\paragraph{Reproducibility.} A self-contained implementation of $\Cl(n,0)$, the
+versor memory, the sparse memory, the generalization battery, the geometric
+attention layer, and the JAX training code for E6--E7 (transformers, position
+mechanisms, the ROME baseline, and the versor editor)---together with the JSON
+logs behind every number reported here---accompanies this paper and is archived at
+\href{https://doi.org/10.5281/zenodo.21752907}{doi.org/10.5281/zenodo.21752907}.
+
+\begin{thebibliography}{99}
+\small
+\bibitem{vaswani2017} A.~Vaswani, N.~Shazeer, N.~Parmar, J.~Uszkoreit, L.~Jones,
+A.~N.~Gomez, {\L}.~Kaiser, and I.~Polosukhin. Attention is all you need. In
+\emph{Advances in Neural Information Processing Systems (NeurIPS)}, vol.~30, 2017.
+
+\bibitem{plate1995} T.~A.~Plate. Holographic reduced representations.
+\emph{IEEE Transactions on Neural Networks}, 6(3):623--641, 1995.
+
+\bibitem{kanerva2009} P.~Kanerva. Hyperdimensional computing: An introduction to
+computing in distributed representation with high-dimensional random vectors.
+\emph{Cognitive Computation}, 1(2):139--159, 2009.
+
+\bibitem{smolensky1990} P.~Smolensky. Tensor product variable binding and the
+representation of symbolic structures in connectionist systems.
+\emph{Artificial Intelligence}, 46(1--2):159--216, 1990.
+
+\bibitem{kleyko2022} D.~Kleyko, D.~A.~Rachkovskij, E.~Osipov, and A.~Rahimi.
+A survey on hyperdimensional computing aka vector symbolic architectures, part~I:
+Models and data transformations. \emph{ACM Computing Surveys}, 55(6):130:1--130:40, 2022.
+
+\bibitem{hestenes1984} D.~Hestenes and G.~Sobczyk. \emph{Clifford Algebra to
+Geometric Calculus: A Unified Language for Mathematics and Physics}. Reidel,
+Dordrecht, 1984.
+
+\bibitem{dorst2007} L.~Dorst, D.~Fontijne, and S.~Mann. \emph{Geometric Algebra
+for Computer Science: An Object-Oriented Approach to Geometry}. Morgan Kaufmann,
+2007.
+
+\bibitem{hopfield1982} J.~J.~Hopfield. Neural networks and physical systems with
+emergent collective computational abilities. \emph{Proceedings of the National
+Academy of Sciences}, 79(8):2554--2558, 1982.
+
+\bibitem{ramsauer2020} H.~Ramsauer, B.~Sch\"afl, J.~Lehner, P.~Seidl, M.~Widrich,
+T.~Adler, L.~Gruber, M.~Holzleitner, M.~Pavlovi\'c, G.~K.~Sandve, V.~Greiff,
+D.~Kreil, M.~Kopp, G.~Klambauer, J.~Brandstetter, and S.~Hochreiter. Hopfield
+networks is all you need. \emph{arXiv:2008.02217}; \emph{ICLR}, 2021.
+
+\bibitem{brehmer2023} J.~Brehmer, P.~de~Haan, S.~Behrends, and T.~Cohen.
+Geometric algebra transformer. In \emph{Advances in Neural Information Processing
+Systems (NeurIPS)}, 2023. \emph{arXiv:2305.18415}.
+
+\bibitem{brandstetter2022} J.~Brandstetter, R.~van~den~Berg, M.~Welling, and
+J.~K.~Gupta. Clifford neural layers for PDE modeling. \emph{arXiv:2209.04934}, 2022.
+
+\bibitem{ruhe2023} D.~Ruhe, J.~Brandstetter, and P.~Forr\'e. Clifford group
+equivariant neural networks. In \emph{Advances in Neural Information Processing
+Systems (NeurIPS)}, 2023.
+
+\bibitem{su2021roformer} J.~Su, M.~Ahmed, Y.~Lu, S.~Pan, W.~Bo, and Y.~Liu.
+RoFormer: Enhanced transformer with rotary position embedding.
+\emph{Neurocomputing}, 568:127063, 2024. \emph{arXiv:2104.09864}.
+
+\bibitem{meng2022rome} K.~Meng, D.~Bau, A.~Andonian, and Y.~Belinkov.
+Locating and editing factual associations in GPT. In \emph{Advances in Neural
+Information Processing Systems (NeurIPS)}, 2022. \emph{arXiv:2202.05262}.
+\end{thebibliography}
+
+\end{document}
