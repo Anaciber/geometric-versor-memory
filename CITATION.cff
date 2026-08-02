@@ -1,0 +1,35 @@
+cff-version: 1.2.0
+message: "If you use this software or its results, please cite the accompanying paper."
+title: "Geometric Versor Memory and Geometric Attention"
+type: software
+version: 1.0.0
+date-released: 2026-07-28
+license: MIT
+doi: 10.5281/zenodo.21752907
+identifiers:
+  - type: doi
+    value: 10.5281/zenodo.21752907
+    description: "Zenodo archive (concept DOI, always resolves to the latest version)"
+authors:
+  - family-names: "Ozcáriz Arraiza"
+    given-names: "Ignacio María"
+    orcid: "https://orcid.org/0000-0002-9511-016X"
+    email: "anaciber@gmail.com"
+repository-code: "https://github.com/Anaciber/geometric-versor-memory"
+keywords:
+  - geometric algebra
+  - Clifford algebra
+  - associative memory
+  - vector symbolic architectures
+  - attention
+  - knowledge editing
+preferred-citation:
+  type: report
+  title: "Geometric Versor Memory and Geometric Attention: A Clifford-Algebra Substrate for One-Shot Binding, Editing, and Order Encoding"
+  year: 2026
+  doi: 10.5281/zenodo.21752907
+  url: "https://doi.org/10.5281/zenodo.21752907"
+  authors:
+    - family-names: "Ozcáriz Arraiza"
+      given-names: "Ignacio María"
+      orcid: "https://orcid.org/0000-0002-9511-016X"
