@@ -120,7 +120,8 @@ If you use this code or the results, please cite the paper (see also
   title   = {Geometric Versor Memory and Geometric Attention: A Clifford-Algebra
              Substrate for One-Shot Binding, Editing, and Order Encoding},
   author  = {Ozc\\'ariz Arraiza, Ignacio Mar\\'ia},
-  journal = {arXiv preprint arXiv:XXXX.XXXXX},
+  doi     = {10.5281/zenodo.21752907},
+  url     = {https://doi.org/10.5281/zenodo.21752907},
   year    = {2026}
 }
 ```
