@@ -1,0 +1,6 @@
+{
+  "n": 6, "dim": 64,
+  "A_interpolation": {"errs": {"dot": 0.10881345255899032, "geo_scal": 0.10881345255899036, "geo_rel": 0.1535374340368781}, "signal": 0.7101914947723806},
+  "B_analogy_n4": 0.96, "B_analogy_n6": 1.0, "B_analogy_n8": 1.0,
+  "C_relational": {"dot": 0.0, "geo": 1.0}
+}

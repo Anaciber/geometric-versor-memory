@@ -1,0 +1,30 @@
+{
+  "base": {"train": 1.0, "heldout": 0.942},
+  "calib": {"within_min": 0.9504314064979553, "between_max": 0.8735271096229553, "tau": 0.9119792580604553},
+  "sequential": {
+    "FT": {
+      "1":  {"efficacy": 1.0, "paraphrase": 1.0, "locality": 0.51},
+      "5":  {"efficacy": 0.8, "paraphrase": 0.8, "locality": 0.22},
+      "10": {"efficacy": 0.3, "paraphrase": 0.3, "locality": 0.07},
+      "20": {"efficacy": 0.1, "paraphrase": 0.1, "locality": 0.04}
+    },
+    "ROME": {
+      "1":  {"efficacy": 1.0,  "paraphrase": 1.0,  "locality": 1.0},
+      "5":  {"efficacy": 1.0,  "paraphrase": 0.6,  "locality": 1.0},
+      "10": {"efficacy": 0.9,  "paraphrase": 0.6,  "locality": 1.0},
+      "20": {"efficacy": 0.95, "paraphrase": 0.55, "locality": 1.0}
+    },
+    "VERSOR": {
+      "1":  {"efficacy": 1.0,  "paraphrase": 1.0, "locality": 1.0},
+      "5":  {"efficacy": 1.0,  "paraphrase": 0.6, "locality": 0.99},
+      "10": {"efficacy": 0.8,  "paraphrase": 0.6, "locality": 0.99},
+      "20": {"efficacy": 0.85, "paraphrase": 0.6, "locality": 0.98}
+    }
+  },
+  "deletion": {
+    "VERSOR": {"restored_locality": 1.0, "mechanism": "exact bind subtraction"},
+    "ROME":   {"restored_locality": 1.0, "mechanism": "subtract rank-one updates"},
+    "FT":     {"restored_locality": 0.033, "mechanism": "none (would require retraining)"}
+  },
+  "secs": 69.9
+}

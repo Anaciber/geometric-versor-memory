@@ -1,0 +1,86 @@
+{
+  "4": {
+    "dim": 16,
+    "families": {
+      "v2": {
+        "cap": 1,
+        "ratio": 0.062
+      },
+      "v_n": {
+        "cap": 2,
+        "ratio": 0.125
+      },
+      "rot": {
+        "cap": 3,
+        "ratio": 0.188
+      },
+      "full": {
+        "cap": 2,
+        "ratio": 0.125
+      }
+    }
+  },
+  "5": {
+    "dim": 32,
+    "families": {
+      "v2": {
+        "cap": 1,
+        "ratio": 0.031
+      },
+      "v_n": {
+        "cap": 2,
+        "ratio": 0.062
+      },
+      "rot": {
+        "cap": 3,
+        "ratio": 0.094
+      },
+      "full": {
+        "cap": 3,
+        "ratio": 0.094
+      }
+    }
+  },
+  "6": {
+    "dim": 64,
+    "families": {
+      "v2": {
+        "cap": 3,
+        "ratio": 0.047
+      },
+      "v_n": {
+        "cap": 5,
+        "ratio": 0.078
+      },
+      "rot": {
+        "cap": 5,
+        "ratio": 0.078
+      },
+      "full": {
+        "cap": 1,
+        "ratio": 0.016
+      }
+    }
+  },
+  "7": {
+    "dim": 128,
+    "families": {
+      "v2": {
+        "cap": 5,
+        "ratio": 0.039
+      },
+      "v_n": {
+        "cap": 7,
+        "ratio": 0.055
+      },
+      "rot": {
+        "cap": 5,
+        "ratio": 0.039
+      },
+      "full": {
+        "cap": 2,
+        "ratio": 0.016
+      }
+    }
+  }
+}
